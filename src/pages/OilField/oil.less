@@ -1,0 +1,88 @@
+.container {
+  height: calc(100vh - 48px - 48px - 47px);
+}
+.leftColumn {
+  width: calc(66.66% - 8px);
+  height: 100%;
+  .count {
+    background-color: #ffffff;
+    height: 150px;
+    padding: 20px 14px;
+    .countChild {
+      width: calc(33.33% - 12px);
+      margin: 0px 6px;
+      text-align: center;
+      padding: 13px;
+    }
+  }
+  .map {
+    height: calc(100% - 170px);
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #ffffff;
+  }
+}
+.rightColumn {
+  width: calc(33.33% - 8px);
+  height: 100%;
+  .msg {
+    height: 300px;
+    background-color: #ffffff;
+  }
+  .summary {
+    margin-top: 20px;
+    height: calc(100% - 320px);
+    background-color: #ffffff;
+  }
+}
+.mapContainer {
+  width: 100%;
+  height: 100%;
+}
+.mapHeader {
+  height: 45px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mapMain {
+  height: calc(100% - 45px);
+  background-color: #8ec8f8;
+}
+.mapTitle {
+  padding: 0 0 0 10px;
+  color: #000;
+  font-size: 18px;
+  font-weight: normal;
+  line-height: 18px;
+  border-left: 4px solid;
+  border-image: linear-gradient(to bottom, #8ec8f8, #129eb1) 5 5;
+}
+.msgHeader:extend(.mapHeader) {
+  padding: 0px 15px;
+  border-bottom: 1px solid #eeeeee;
+}
+.msgTitle:extend(.mapTitle) {
+  border-image: linear-gradient(to bottom, #ffc88d, #ff9c0b) 5 5;
+}
+.msgMain {
+  height: calc(100% - 50px);
+  padding: 0px 8px;
+  overflow-y: auto;
+}
+.msgMain::-webkit-scrollbar {
+  display: none;
+}
+:global {
+  .ant-avatar {
+    width: 12px;
+    height: 12px;
+  }
+}
+.introMain:extend(.msgMain) {
+  padding: 20px;
+}
+.introMain::-webkit-scrollbar {
+  display: none;
+}
