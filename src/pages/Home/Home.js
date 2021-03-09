@@ -1,11 +1,12 @@
 import React, { PureComponent } from 'react';
-import { Space, Typography, message, Modal, Table, Tag, Popconfirm, Rate } from 'antd';
+import { Space, Typography, message, Modal, Table, Tag, Popconfirm, Rate, Button } from 'antd';
 import global from '@/global.less';
 import Footer from '@/components/Footer';
 import { queryBookByBookTagIds, deleteBook } from '@/services/book';
 import { queryAllBookTag } from '@/services/bookTag';
-import { queryAdminDetail, queryUser } from '@/services/user';
+import { queryUser } from '@/services/user';
 import { numberDateFormat } from '@/utils/utils';
+import { WordCloud } from '@ant-design/charts';
 
 const { Text, Title } = Typography;
 const { confirm } = Modal;
@@ -19,14 +20,20 @@ class Index extends PureComponent {
       pageSize: 10,
       total: 0,
       tableLoading: false,
-      book_tags: [],
+      myTags: [],
+      data: [],
+      selectedTags: [],
     };
   }
 
   componentDidMount() {
-    this.getAllBooks();
-    this.getAdminDetail();
-    //this.getAllBookTag();
+    //this.getAdminDetail();
+    this.getAllBookTag();
+    window.onresize = () => {
+      this.setState({
+        show: false,
+      });
+    };
   }
 
   // 获取登录的用户信息
@@ -36,13 +43,11 @@ class Index extends PureComponent {
     if (res.code === '0000') {
       this.setState(
         {
-          book_tags: res.result.book_tags,
+          myTags: res.result.book_tags,
         },
         () => {
-          const { book_tags } = this.state;
-          console.log(book_tags);
-          if (book_tags.length === 0) {
-            this.getAllBookTag();
+          const { myTags } = this.state;
+          if (myTags.length === 0) {
           } else {
             this.getAllBooks();
           }
@@ -57,7 +62,9 @@ class Index extends PureComponent {
   getAllBookTag = async () => {
     let res = await queryAllBookTag();
     if (res.code === '0000') {
-      console.log(res);
+      this.setState({
+        data: res.result,
+      });
     } else {
       message.error(res.message);
     }
@@ -65,16 +72,16 @@ class Index extends PureComponent {
 
   // 获取所有书籍
   getAllBooks = async () => {
-    const { pageSize, currentPage, book_tags } = this.state;
+    const { pageSize, currentPage, myTags } = this.state;
     this.setState({
       tableLoading: true,
     });
     let bookTagIds = [];
-    for (let item of book_tags) {
+    for (let item of myTags) {
       bookTagIds.push(item.id);
     }
     let res = await queryBookByBookTagIds(
-      bookTagIds,
+      bookTagIds.join(),
       pageSize,
       pageSize * (currentPage - 1),
       'create_time',
@@ -140,8 +147,93 @@ class Index extends PureComponent {
     });
   };
 
+  // 监听图表点击
+  listen = (plot) => {
+    plot.chart.on('plot:click', (evt) => {
+      const { x, y } = evt;
+      let { selectedTags } = this.state;
+      let res = plot.chart.getTooltipItems({ x, y });
+      if (res.length !== 0 && selectedTags.length < 3) {
+        if (res[0].data && res[0].data.datum) {
+          this.setState({
+            show: false,
+          });
+          let isExist = false;
+          for (let item of selectedTags) {
+            if (item.id === res[0].data.datum.id) {
+              isExist = true;
+            }
+          }
+          if (isExist === false) {
+            selectedTags.push(res[0].data.datum);
+            this.setState({
+              selectedTags: selectedTags,
+              show: true,
+            });
+          }
+        }
+      }
+    });
+  };
+
+  // 删除标签
+  closeTag = (id) => {
+    let { selectedTags } = this.state;
+    for (let i = 0; i < selectedTags.length; i++) {
+      if (selectedTags[i].id === id) {
+        selectedTags.splice(i, 1);
+        i--;
+      }
+    }
+    this.setState({
+      selectedTags,
+    });
+  };
+
+  // 获取数据
+  getBook = () => {
+    const { selectedTags } = this.state;
+    if (selectedTags.length === 0) {
+      message.warning('请选择书籍标签');
+      return;
+    }
+    this.setState(
+      {
+        myTags: selectedTags,
+      },
+      () => {
+        this.getAllBooks();
+      },
+    );
+  };
+
+  // 清除选择
+  clear = () => {
+    this.setState({
+      myTags: [],
+    });
+  };
+
   render() {
-    const { books } = this.state;
+    const { books, myTags, data, selectedTags } = this.state;
+    const config = {
+      data: data,
+      autoFit: true,
+      wordField: 'tag_name',
+      weightField: 'book_num',
+      colorField: 'tag_name',
+      wordStyle: {
+        fontFamily: 'Verdana',
+        fontSize: [8, 32],
+        rotation: 0,
+      },
+      random: function random() {
+        return 0.5;
+      },
+      onReady: (plot) => {
+        this.listen(plot);
+      },
+    };
     const columns = [
       {
         title: '创建时间',
@@ -164,11 +256,6 @@ class Index extends PureComponent {
         dataIndex: 'author',
         key: 'author',
       },
-      /*{
-        title: '简介',
-        dataIndex: 'content',
-        key: 'content',
-      },*/
       {
         title: '标签',
         key: 'bookTags',
@@ -223,29 +310,56 @@ class Index extends PureComponent {
       <div className={global.MyMain}>
         <div className={global.MyContent}>
           <div className={global.MyHeader}>
-            <div className={global.MyTitle}>
-              <Text style={{ fontSize: 16 }}>书籍推荐</Text>
-            </div>
             <Space>
+              {myTags.length !== 0 && <Button onClick={this.clear}>返回</Button>}
+              <div className={global.MyTitle}>
+                <Text style={{ fontSize: 16 }}>书籍推荐</Text>
+              </div>
               {/*<Search placeholder="请输入用户名或姓名" onSearch={this.onSearch} enterButton />*/}
             </Space>
           </div>
           <div className={global.MyBody}>
             <div className={global.MyBodyRight}>
-              <Table
-                loading={this.state.tableLoading}
-                columns={columns}
-                dataSource={books}
-                pagination={{
-                  hideOnSinglePage: true,
-                  showQuickJumper: true,
-                  showSizeChanger: false,
-                  current: this.state.currentPage,
-                  pageSize: this.state.pageSize,
-                  total: this.state.total,
-                  onChange: (page, pageSize) => this.onPageChange(page, pageSize),
-                }}
-              />
+              {myTags.length === 0 ? (
+                <div style={{ width: '100%', height: '100%', textAlign: 'center', padding: 50 }}>
+                  <Space direction="vertical" size="large">
+                    <Text style={{ fontSize: 16 }}>
+                      选择感兴趣的类型（最多选3个）：
+                      {selectedTags.map((item) => {
+                        return (
+                          <Tag
+                            key={item.id}
+                            color="orange"
+                            closable
+                            onClose={this.closeTag.bind(this, item.id)}
+                          >
+                            {item.tag_name}
+                          </Tag>
+                        );
+                      })}
+                    </Text>
+                    <Button type="primary" onClick={this.getBook}>
+                      获取书籍
+                    </Button>
+                  </Space>
+                  <WordCloud {...config} />
+                </div>
+              ) : (
+                <Table
+                  loading={this.state.tableLoading}
+                  columns={columns}
+                  dataSource={books}
+                  pagination={{
+                    hideOnSinglePage: true,
+                    showQuickJumper: true,
+                    showSizeChanger: false,
+                    current: this.state.currentPage,
+                    pageSize: this.state.pageSize,
+                    total: this.state.total,
+                    onChange: (page, pageSize) => this.onPageChange(page, pageSize),
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>
