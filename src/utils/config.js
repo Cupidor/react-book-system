@@ -1,7 +1,7 @@
 const config = {};
-const version = 'test';
+const version = 'prod';
 if (version === 'prod') {
-  config.host = 'https://api.njgn.com';
+  config.host = 'http://127.0.0.1:8011';
 } else if (version === 'test') {
   config.host = 'http://wcxweb.51vip.biz';
 }
